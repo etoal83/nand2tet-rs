@@ -12,9 +12,13 @@
  */
 
 CHIP PC {
-    IN in[16],load,inc,reset;
+    IN in[16], load, inc, reset;
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    Inc16(in=fb, out=outPlus1);
+    Mux16(a=outPlus1, b=in, sel=load, out=count);
+    Mux16(a=count, b=false, sel=reset, out=registerIn);
+    Or8Way(in[0]=inc, in[1]=load, in[2]=reset, out=registerLoad);
+    Register(in=registerIn, load=registerLoad, out=fb, out=out);
 }
