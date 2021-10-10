@@ -39,5 +39,43 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+    // Instruction decoder
+    // bit decomposition for C command:
+    //   i |  x    x |  a | c1   c2   c3   c4   c5   c6 | d1   d2   d3 | j1   j2   j3
+    // -------------------------------------------------------------------------------
+    //  15 | 14 | 13 | 12 | 11 | 10 |  9 |  8 |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 
+    //
+    Not(in=instruction[15], out=commandA);      // 1: A command
+
+    // ALU
+    And(a=instruction[15], b=instruction[12], out=selAM);
+    Mux16(a=regAout, b=inM, sel=selAM, out=muxAMout);
+    ALU(x=regDout, y=muxAMout,
+        zx=instruction[11], nx=instruction[10], zy=instruction[9],
+        ny=instruction[8], f=instruction[7], no=instruction[6],
+        out=outM, out=aluOut, zr=isOutZero, ng=isOutNegative);
+
+    // A register
+    And(a=instruction[15], b=instruction[5], out=destRegA);  
+    Or(a=commandA, b=destRegA, out=loadRegA);                   // A register load flag: !i | (i & d1)
+    Mux16(a=instruction, b=aluOut, sel=instruction[15], out=regAin);
+    Register(in=regAin, load=loadRegA, out=regAout, out[0..14]=addressM);
+
+    // D register
+    And(a=instruction[15], b=instruction[4], out=loadRegD);     // D register load flag: i && d2
+    Register(in=aluOut, load=loadRegD, out=regDout);
+
+    // Memory write
+    And(a=instruction[15], b=instruction[3], out=writeM);
+
+    // Program counter
+    Not(in=isOutNegative, out=isOutPositive);
+    Not(in=isOutZero, out=isOutNonZero);
+    And(a=isOutPositive, b=isOutNonZero, out=isOutStronglyPositive);
+    And(a=isOutStronglyPositive, b=instruction[0], out=jumpPositive);
+    And(a=isOutNegative, b=instruction[2], out=jumpNegative);
+    And(a=isOutZero, b=instruction[1], out=jumpZero);
+    Or8Way(in[0]=jumpPositive, in[1]=jumpZero, in[2]=jumpNegative, in[3..7]=false, out=jump);
+    And(a=instruction[15], b=jump, out=loadJumpAddress);
+    PC(in=regAout, inc=true, load=loadJumpAddress, reset=reset, out[0..14]=pc);
 }
