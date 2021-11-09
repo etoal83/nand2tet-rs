@@ -1,0 +1,15 @@
+[package]
+name = "hackasm"
+version = "0.1.0"
+authors = ["etoal83 <etoal83@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "hackasm"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hackasm"
+path = "src/main.rs"
+
+[dependencies]
